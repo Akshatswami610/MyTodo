@@ -50,7 +50,7 @@ def edit(sno):
     todo = Todo.query.filter_by(sno=sno).first()
     return render_template('edit.html', todo=todo)
 
-@app.route("/delete/<int:sno>")
+@app.route("/delete/<int:sno>", methods=['GET', 'POST'])
 def delete(sno):
     todo = Todo.query.filter_by(sno=sno).first()
     db.session.delete(todo)

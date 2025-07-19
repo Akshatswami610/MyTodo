@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock title %}
+
+{% block body %}
+
+<!-- Search Results Info -->
+{% if request.args.get('search') %}
+<div class="search-results-info">
+    <i class="bi bi-search me-2"></i>
+    {% set search_query = request.args.get('search') %}
+    {% set filtered_todos = allTodo|selectattr('title', 'search', search_query, ignorecase=true)|list + allTodo|selectattr('desc', 'search', search_query, ignorecase=true)|list %}
+    {% set unique_todos = filtered_todos|unique(attribute='sno')|list %}
+
+    Search results for "<strong>{{ search_query }}</strong>" - Found {{ unique_todos|length }} todo(s)
+
+    <a href="/" class="btn btn-sm btn-outline-light ms-3">
+        <i class="bi bi-x-lg me-1"></i>Clear Search
+    </a>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Add Todo Form -->
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Todo
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/" id="todoForm">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">
+                            <i class="bi bi-pencil me-2"></i>Title
+                        </label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="title"
+                            name="title"
+                            required
+                            placeholder="What needs to be done?"
+                            maxlength="100"
+                        >
+                        <div class="form-text">
+                            <span id="titleCount">0</span>/100 characters
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="desc" class="form-label">
+                            <i class="bi bi-card-text me-2"></i>Description
+                        </label>
+                        <textarea
+                            class="form-control"
+                            id="desc"
+                            name="desc"
+                            rows="3"
+                            placeholder="Add some details (optional)..."
+                            maxlength="500"
+                        ></textarea>
+                        <div class="form-text">
+                            <span id="descCount">0</span>/500 characters
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-plus-lg me-2"></i>Create Todo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Todo List -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                <h4 class="mb-0">
+                    <i class="bi bi-list-task me-2"></i>Your Todos
+                    {% if request.args.get('search') %}
+                        {% set search_query = request.args.get('search') %}
+                        {% set filtered_todos = allTodo|selectattr('title', 'search', search_query, ignorecase=true)|list + allTodo|selectattr('desc', 'search', search_query, ignorecase=true)|list %}
+                        {% set display_todos = filtered_todos|unique(attribute='sno')|list %}
+                        <span class="badge bg-light text-dark ms-2">{{ display_todos|length }}</span>
+                    {% else %}
+                        {% set display_todos = allTodo %}
+                        <span class="badge bg-light text-dark ms-2">{{ display_todos|length }}</span>
+                    {% endif %}
+                </h4>
+                <div class="btn-group mt-2 mt-md-0" role="group">
+                    <input type="radio" class="btn-check" name="filter" id="all" autocomplete="off" checked>
+                    <label class="btn btn-outline-light btn-sm" for="all">
+                        <i class="bi bi-list me-1"></i>All
+                    </label>
+
+                    <input type="radio" class="btn-check" name="filter" id="pending" autocomplete="off">
+                    <label class="btn btn-outline-light btn-sm" for="pending">
+                        <i class="bi bi-clock me-1"></i>Pending
+                    </label>
+
+                    <input type="radio" class="btn-check" name="filter" id="completed" autocomplete="off">
+                    <label class="btn btn-outline-light btn-sm" for="completed">
+                        <i class="bi bi-check-circle me-1"></i>Done
+                    </label>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if display_todos %}
+                    <div class="row" id="todoList">
+                        {% for todo in display_todos %}
+                        <div class="col-12 mb-3 todo-item"
+                             data-status="{{ 'completed' if todo.completed else 'pending' }}">
+                            <div class="todo-card border-start border-4 border-primary {{ 'completed' if todo.completed else '' }}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <div class="me-3">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               {{ 'checked' if todo.completed else '' }}
+                                                               onchange="toggleTodo({{ todo.sno }})">
+                                                    </div>
+                                                </div>
+                                                <h5 class="card-title mb-0 {{ 'text-decoration-line-through text-muted' if todo.completed else '' }}">
+                                                    {% if request.args.get('search') %}
+                                                        {{ todo.title|replace(request.args.get('search'), '<mark>' + request.args.get('search') + '</mark>')|safe }}
+                                                    {% else %}
+                                                        {{ todo.title }}
+                                                    {% endif %}
+                                                </h5>
+                                            </div>
+
+                                            {% if todo.desc %}
+                                            <p class="card-text text-muted mb-3 {{ 'text-decoration-line-through' if todo.completed else '' }}" style="padding-left: 2.5rem;">
+                                                {% if request.args.get('search') %}
+                                                    {{ todo.desc|replace(request.args.get('search'), '<mark>' + request.args.get('search') + '</mark>')|safe }}
+                                                {% else %}
+                                                    {{ todo.desc }}
+                                                {% endif %}
+                                            </p>
+                                            {% endif %}
+
+                                            <div class="d-flex justify-content-between align-items-center" style="padding-left: 2.5rem;">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-calendar3 me-1"></i>
+                                                    {{ todo.date_created.strftime('%b %d, %Y') }}
+                                                    <i class="bi bi-clock ms-2 me-1"></i>
+                                                    {{ todo.date_created.strftime('%I:%M %p') }}
+                                                </small>
+
+                                                <div class="btn-group" role="group">
+                                                    <a href="/edit/{{ todo.sno }}"
+                                                       class="btn btn-sm btn-outline-primary"
+                                                       title="Edit Todo">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-danger"
+                                                            title="Delete Todo"
+                                                            onclick="deleteTodo({{ todo.sno }}, '{{ todo.title }}')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-results">
+                        {% if request.args.get('search') %}
+                            <i class="bi bi-search"></i>
+                            <h3>No todos found</h3>
+                            <p>No todos match your search for "<strong>{{ request.args.get('search') }}</strong>"</p>
+                            <a href="/" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left me-2"></i>View All Todos
+                            </a>
+                        {% else %}
+                            <i class="bi bi-clipboard-x"></i>
+                            <h3>No todos yet!</h3>
+                            <p>Ready to get productive? Add your first todo above!</p>
+                            <button class="btn btn-outline-primary" onclick="document.getElementById('title').focus()">
+                                <i class="bi bi-plus-circle me-2"></i>Get Started
+                            </button>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden forms for operations -->
+<div id="hiddenForms" style="display: none;"></div>
+
+{% endblock body %}
+
+{% block scripts %}
+<script>
+    // Character counters
+    document.addEventListener('DOMContentLoaded', function() {
+        const titleInput = document.getElementById('title');
+        const descInput = document.getElementById('desc');
+        const titleCount = document.getElementById('titleCount');
+        const descCount = document.getElementById('descCount');
+
+        if (titleInput && titleCount) {
+            titleInput.addEventListener('input', function() {
+                titleCount.textContent = this.value.length;
+                if (this.value.length > 80) {
+                    titleCount.style.color = 'var(--accent-danger)';
+                } else {
+                    titleCount.style.color = 'var(--accent-primary)';
+                }
+            });
+        }
+
+        if (descInput && descCount) {
+            descInput.addEventListener('input', function() {
+                descCount.textContent = this.value.length;
+                if (this.value.length > 400) {
+                    descCount.style.color = 'var(--accent-danger)';
+                } else {
+                    descCount.style.color = 'var(--accent-primary)';
+                }
+
+                // Auto-resize
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+        }
+
+        // Filter functionality
+        const filterButtons = document.querySelectorAll('input[name="filter"]');
+        const todoItems = document.querySelectorAll('.todo-item');
+
+        filterButtons.forEach(button => {
+            button.addEventListener('change', function() {
+                const filter = this.id;
+
+                todoItems.forEach(item => {
+                    const status = item.dataset.status;
+
+                    if (filter === 'all') {
+                        item.style.display = 'block';
+                    } else if (filter === 'completed' && status === 'completed') {
+                        item.style.display = 'block';
+                    } else if (filter === 'pending' && status === 'pending') {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Form validation
+        const todoForm = document.getElementById('todoForm');
+        if (todoForm) {
+            todoForm.addEventListener('submit', function(e) {
+                const title = titleInput.value.trim();
+                if (!title) {
+                    e.preventDefault();
+                    alert('Please enter a title for your todo!');
+                    titleInput.focus();
+                }
+            });
+        }
+    });
+
+    // Toggle todo completion
+    function toggleTodo(todoId) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/toggle/${todoId}`;
+        document.getElementById('hiddenForms').appendChild(form);
+        form.submit();
+    }
+
+    // Delete todo with confirmation
+    function deleteTodo(todoId, todoTitle) {
+        const result = confirm(`Are you sure you want to delete "${todoTitle}"?\n\nThis action cannot be undone.`);
+
+        if (result) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/delete/${todoId}`;
+            document.getElementById('hiddenForms').appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+{% endblock scripts %}

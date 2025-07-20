@@ -67,7 +67,7 @@ Follow these steps to run the project locally:
 The app will run on http://127.0.0.1:5000/.
 
 ### 🌍 Live Demo
-MyTodo on Render - mytodo-a61g.onrender.com
+MyTodo on Render - https://mytodo-a61g.onrender.com/
 
 
 ### 📝 License
